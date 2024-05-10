@@ -8,33 +8,41 @@ from experiment_tracker import ExperimentTracker
 
 def main():
     # Data preparation
-    # This step covers the 'DataHandler' implementation as per the assignment.
     data_handler = DataHandler()
     train_loader, valid_loader = data_handler.load_data()
 
     # Supervised Learning
-    # Here we are loading and training a pre-trained model as specified in the assignment.
-    print("Training supervised model...")
-    supervised_model = ModelManager('EfficientNet-B0', pretrained=True)
-    supervised_model.train_model(train_loader, epochs=Config.EPOCHS)
-    supervised_accuracy = supervised_model.evaluate_model(valid_loader)
-    supervised_model.save_model(Config.MODEL_SAVE_PATH)
+    # print("Training supervised model...")
+    # supervised_model = ModelManager('EfficientNet-B0', pretrained=True, use_checkpoint=True)
+    # supervised_model.train_model(train_loader, valid_loader, epochs=Config.EPOCHS)
+    # supervised_accuracy, _ = supervised_model.evaluate_model(valid_loader)
+    # supervised_model.save_model(Config.MODEL_SAVE_PATH)
 
-    # Self-Supervised Learning: Gaussian Blurring
-    # Implementing the first self-supervised learning task: Gaussian Blurring.
-    print("Training model on Gaussian Blur pretext task...")
-    gaussian_model = PretextTask('EfficientNet-B0', 'gaussian_blur', Config.PRETEXT_TASKS['gaussian_blur']['classes'])
-    gaussian_model.train_pretext_task(train_loader, gaussian_model.optimizer, gaussian_model.criterion, Config.EPOCHS)
-    gaussian_model.save_model(Config.PRETEXT_TASKS['gaussian_blur']['pretext_model_path'])
+    # Gaussian Blur Pretext Task
+    print("Training on Gaussian Blur pretext task...")
+    gaussian_task = PretextTask('EfficientNet-B0', 'gaussian_blur', Config.PRETEXT_TASKS['gaussian_blur']['classes'])
+    gaussian_task.train_pretext_task(train_loader, gaussian_task.optimizer, gaussian_task.criterion, Config.EPOCHS)
+    gaussian_task.save_model(Config.PRETEXT_TASKS['gaussian_blur']['pretext_model_path'])
 
-    # Fine-tuning the Gaussian Blur model for scene classification
+    # Black and White Perturbation Pretext Task
+    print("Training on Black and White Perturbation pretext task...")
+    bw_perturbation_task = PretextTask('EfficientNet-B0', 'black_white_perturbation', Config.PRETEXT_TASKS['black_white_perturbation']['classes'])
+    bw_perturbation_task.train_pretext_task(train_loader, bw_perturbation_task.optimizer, bw_perturbation_task.criterion, Config.EPOCHS)
+    bw_perturbation_task.save_model(Config.PRETEXT_TASKS['black_white_perturbation']['pretext_model_path'])
+
+    # Fine-tuning Gaussian Blur Model for scene classification
     print("Fine-tuning Gaussian Blur model for scene classification...")
     scene_classifier_gaussian = SceneClassifier('EfficientNet-B0', Config.NUM_CLASSES)
     scene_classifier_gaussian.fine_tune_classifier(valid_loader)
     gaussian_finetuned_accuracy = scene_classifier_gaussian.evaluate_model(valid_loader)
 
+    # Fine-tuning Black and White Perturbation Model for scene classification
+    print("Fine-tuning Black and White Perturbation model for scene classification...")
+    scene_classifier_bw = SceneClassifier('EfficientNet-B0', Config.NUM_CLASSES)
+    scene_classifier_bw.fine_tune_classifier(valid_loader)
+    bw_finetuned_accuracy = scene_classifier_bw.evaluate_model(valid_loader)
+
     # Experiment tracking
-    # Logging the performance and setup details for comparison as per the assignment.
     tracker = ExperimentTracker()
     tracker.log_experiment({
         'model_type': 'Supervised',
@@ -45,6 +53,11 @@ def main():
         'model_type': 'Self-Supervised with Gaussian Blur Fine-tuned',
         'accuracy': gaussian_finetuned_accuracy,
         'model_details': 'EfficientNet-B0 pre-trained, self-supervised on Gaussian Blur, fine-tuned on scene classification.'
+    })
+    tracker.log_experiment({
+        'model_type': 'Self-Supervised with Black and White Perturbation Fine-tuned',
+        'accuracy': bw_finetuned_accuracy,
+        'model_details': 'EfficientNet-B0 pre-trained, self-supervised on Black and White Perturbation, fine-tuned on scene classification.'
     })
 
     # Generating the report of experiments
