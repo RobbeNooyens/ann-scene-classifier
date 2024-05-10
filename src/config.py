@@ -22,11 +22,13 @@ class Config:
     PRETEXT_TASKS = {
         'gaussian_blur': {
             'classes': 5,  # Example for Gaussian blur sizes
-            'pretext_model_path': 'models/EfficientNet-B0_pretext_gaussian_blur.pth'
+            'pretext_model_path': 'models/EfficientNet-B0_pretext_gaussian_blur.pth',
+            'scene_classifier_model_path': 'models/EfficientNet-B0_scene_classifier_gaussian_blur.pth'
         },
         'black_white_perturbation': {
             'classes': 2,  # Black or white perturbation
-            'pretext_model_path': 'models/EfficientNet-B0_pretext_bw_perturbation.pth'
+            'pretext_model_path': 'models/EfficientNet-B0_pretext_bw_perturbation.pth',
+            'scene_classifier_model_path': 'models/EfficientNet-B0_scene_classifier_bw_perturbation.pth'
         }
     }
 

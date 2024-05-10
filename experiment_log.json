@@ -1,0 +1,14 @@
+[
+    {
+        "model_type": "Self-Supervised with Gaussian Blur Fine-tuned",
+        "accuracy": 0.0,
+        "model_details": "EfficientNet-B0 pre-trained, self-supervised on Gaussian Blur, fine-tuned on scene classification.",
+        "timestamp": "2024-05-10T17:53:45.558646"
+    },
+    {
+        "model_type": "Self-Supervised with Black and White Perturbation Fine-tuned",
+        "accuracy": 0.0,
+        "model_details": "EfficientNet-B0 pre-trained, self-supervised on Black and White Perturbation, fine-tuned on scene classification.",
+        "timestamp": "2024-05-10T17:53:45.561084"
+    }
+]

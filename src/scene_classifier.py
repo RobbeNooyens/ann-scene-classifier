@@ -2,33 +2,36 @@ import torch
 import torch.nn as nn
 from model_manager import ModelManager
 from config import Config
+from tqdm import tqdm
 
 
 class SceneClassifier(ModelManager):
     def __init__(self, model_name, num_classes, pretrained=True):
         super().__init__(model_name, pretrained)
-        # Replace the classifier with a new one for scene classification
         self.num_classes = num_classes
         self._modify_classifier()
 
     def _modify_classifier(self):
-        """
-        Modify the classifier part of the model for scene classification.
-        """
-        # Assuming the model has an attribute `classifier` that we want to replace
-        in_features = self.model.classifier.in_features
-        self.model.classifier = nn.Linear(in_features, self.num_classes).to(self.device)
+        # Adjust the classifier part of the model for scene classification
+        if isinstance(self.model.classifier, nn.Sequential):
+            num_ftrs = self.model.classifier[-1].in_features
+            self.model.classifier[-1] = nn.Linear(num_ftrs, self.num_classes)
+        else:
+            num_ftrs = self.model.classifier.in_features
+            self.model.classifier = nn.Linear(num_ftrs, self.num_classes)
 
-    def train_model(self, train_loader, optimizer=None, criterion=None, epochs=10):
+    def fine_tune_classifier(self, train_loader, valid_loader, epochs=10):
         """
-        Train the classifier of the model on the scene classification task.
+        Fine-tune only the classifier part of the model on the scene classification task.
         """
-        if optimizer is None:
-            optimizer = torch.optim.Adam(self.model.classifier.parameters(), lr=Config.LEARNING_RATE)
-        if criterion is None:
-            criterion = nn.CrossEntropyLoss()
+        self.model.train()  # Set the model to training mode
+        # Freeze all layers except the classifier
+        for param in self.model.features.parameters():
+            param.requires_grad = False
 
-        self.model.train()
+        optimizer = torch.optim.Adam(self.model.classifier.parameters(), lr=Config.LEARNING_RATE)
+        criterion = nn.CrossEntropyLoss()
+
         for epoch in range(epochs):
             total_loss = 0
             for images, labels in train_loader:
@@ -39,11 +42,14 @@ class SceneClassifier(ModelManager):
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
-            print(f'Epoch {epoch + 1}/{epochs}, Loss: {total_loss / len(train_loader)}')
+            print(f'Epoch {epoch + 1}, Train Loss: {total_loss / len(train_loader)}')
+
+            # Validate the model
+            self.evaluate_model(valid_loader)
 
     def evaluate_model(self, test_loader):
         """
-        Evaluate the model on the scene classification task.
+        Evaluate the model's performance on the test loader and return the accuracy.
         """
         self.model.eval()
         correct = 0

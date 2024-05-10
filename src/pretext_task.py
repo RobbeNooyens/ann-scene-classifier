@@ -6,27 +6,46 @@ from model_manager import ModelManager
 from torchvision.transforms import functional as F
 from tqdm import tqdm
 
+from src.config import Config
+
+
 class PretextTask(ModelManager):
     def __init__(self, model_name, pretext_task, num_classes, pretrained=True):
         super().__init__(model_name, pretrained)
         self.pretext_task = pretext_task
         self.num_classes = num_classes
-        self.modify_classifier()  # Modify the classifier to fit the pretext task needs
+        self.original_classifier = None  # To store the original classifier
+        self.modify_classifier_for_pretext()
 
-    def modify_classifier(self):
+    def modify_classifier_for_pretext(self):
         """
-        Adjust the classifier part of the model for the specific pretext task.
-        This assumes the classifier ends with a Linear layer we want to replace.
+        Modify the classifier for the specific pretext task and save the original classifier.
         """
-        # Accessing the last layer of the classifier which is a linear layer in EfficientNet
-        if isinstance(self.model.classifier, nn.Sequential):
-            # Replace the last layer
-            num_ftrs = self.model.classifier[-1].in_features
-            self.model.classifier[-1] = nn.Linear(num_ftrs, self.num_classes)
-        else:
-            # Direct replacement if it's a single Linear layer
-            num_ftrs = self.model.classifier.in_features
-            self.model.classifier = nn.Linear(num_ftrs, self.num_classes)
+        # Save the original classifier
+        if hasattr(self.model, 'classifier') and isinstance(self.model.classifier, nn.Sequential):
+            self.original_classifier = self.model.classifier[-1]
+        # Assume the last layer is the classifier which we need to modify
+        num_ftrs = self.model.classifier[-1].in_features
+        self.model.classifier[-1] = nn.Linear(num_ftrs, self.num_classes)
+
+    def restore_original_classifier(self):
+        """
+        Restore the original classifier that was saved before the pretext task modification.
+        """
+        if self.original_classifier is not None:
+            self.model.classifier[-1] = self.original_classifier
+
+    def prepare_for_scene_classification(self):
+        """
+        Prepare the model for scene classification by restoring the original classifier
+        and freezing the feature extraction layers.
+        """
+        # Freeze all feature extraction layers
+        for param in self.model.features.parameters():
+            param.requires_grad = False
+
+        # Restore the original classifier
+        self.restore_original_classifier()
 
     def train_pretext_task(self, train_loader, optimizer, criterion, epochs):
         """
@@ -66,15 +85,44 @@ class PretextTask(ModelManager):
         perturbed_img[:, start_x:end_x, start_y:end_y] = 0 if perturbation == 0 else 1
         return perturbed_img
 
-    # def generate_labels(self, images):
-    #     """
-    #     Generate labels according to the specific pretext task being run.
-    #     """
-    #     if self.pretext_task == 'gaussian_blur':
-    #         # Implementation to generate labels for Gaussian blur sizes
-    #         pass
-    #     elif self.pretext_task == 'black_white_perturbation':
-    #         # Implementation to generate labels for black and white perturbation
-    #         pass
-    #     return torch.randint(0, self.num_classes, (images.size(0),))
+    def fine_tune_classifier(self, train_loader, valid_loader, epochs):
+        """
+        Fine-tunes the classifier part of the model on the scene classification task.
+        """
+        self.model.train()
+        optimizer = torch.optim.Adam(self.model.classifier.parameters(), lr=Config.LEARNING_RATE)
+        criterion = nn.CrossEntropyLoss()
+
+        for epoch in range(epochs):
+            total_loss = 0
+            for images, labels in train_loader:
+                images, labels = images.to(self.device), labels.to(self.device)
+                optimizer.zero_grad()
+                outputs = self.model(images)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+                total_loss += loss.item()
+
+            print(f'Epoch {epoch + 1}/{epochs}, Loss: {total_loss / len(train_loader)}')
+            self.evaluate_model(valid_loader)
+
+    def evaluate_model(self, valid_loader):
+        """
+        Evaluate the fine-tuned model on the validation set for scene classification.
+        """
+        self.model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for images, labels in valid_loader:
+                images, labels = images.to(self.device), labels.to(self.device)
+                outputs = self.model(images)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        accuracy = 100 * correct / total
+        print(f'Validation Accuracy: {accuracy}%')
+        return accuracy
 
