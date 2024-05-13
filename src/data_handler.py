@@ -1,6 +1,11 @@
+import os
+
+from PIL import Image
 from torchvision import datasets
 from torch.utils.data import DataLoader, random_split
 from torchvision.models import EfficientNet_B0_Weights
+from torchvision.transforms import functional as F
+
 
 from config import Config
 
@@ -20,3 +25,26 @@ class DataHandler:
                                   pin_memory=True)
 
         return train_loader, valid_loader
+
+    def load_image(self, image_path):
+        """
+        Loads a single image and applies the pre-configured transformations.
+        """
+        image = Image.open(image_path).convert('RGB')
+        if self.transform:
+            image = self.transform(image)
+        self.save_transformed_image(image, 'original_transformed.jpg')
+        return image
+
+    def save_transformed_image(self, image_tensor, save_path):
+        """
+        Saves a transformed tensor image to a file.
+        """
+        pil_image = F.to_pil_image(image_tensor)
+        pil_image.save(save_path)
+
+    def get_transform(self):
+        """
+        Returns the current transformation pipeline.
+        """
+        return self.transform

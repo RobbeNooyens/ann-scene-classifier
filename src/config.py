@@ -12,7 +12,7 @@ class Config:
     RANDOM_SEED = 42
 
     # Model training
-    EPOCHS = 2 # TODO Vergroten
+    EPOCHS = 1 # TODO Vergroten
     LEARNING_RATE = 0.001
 
     # Hardware configuration
@@ -21,12 +21,14 @@ class Config:
     # Pretext tasks configurations (if applicable)
     PRETEXT_TASKS = {
         'gaussian_blur': {
-            'classes': 5,  # Example for Gaussian blur sizes
+            'model_name': 'EfficientNet-B0',  # Model name to use for the pretext task
+            'classes': [5, 9, 13, 17, 21],  # Example for Gaussian blur sizes
             'pretext_model_path': 'models/EfficientNet-B0_pretext_gaussian_blur.pth',
             'scene_classifier_model_path': 'models/EfficientNet-B0_scene_classifier_gaussian_blur.pth'
         },
         'black_white_perturbation': {
-            'classes': 2,  # Black or white perturbation
+            'model_name': 'EfficientNet-B0',  # Model name to use for the pretext task
+            'classes': [0, 1],  # Black or white perturbation
             'pretext_model_path': 'models/EfficientNet-B0_pretext_bw_perturbation.pth',
             'scene_classifier_model_path': 'models/EfficientNet-B0_scene_classifier_bw_perturbation.pth'
         }

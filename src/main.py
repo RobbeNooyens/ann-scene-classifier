@@ -22,9 +22,17 @@ def main():
 
     # Gaussian Blur Pretext Task
     print("Training on Gaussian Blur pretext task...")
-    gaussian_task = PretextTask('EfficientNet-B0', 'gaussian_blur', Config.PRETEXT_TASKS['gaussian_blur']['classes'])
-    gaussian_task.train_pretext_task(train_loader, gaussian_task.optimizer, gaussian_task.criterion, Config.EPOCHS)
+    gaussian_config = Config.PRETEXT_TASKS['gaussian_blur']
+    gaussian_task = PretextTask('gaussian_blur')
+    # gaussian_task.train_pretext_task(train_loader, gaussian_task.optimizer, gaussian_task.criterion, Config.EPOCHS)
+    gaussian_task.train_model(train_loader, valid_loader, Config.EPOCHS)
     gaussian_task.save_model(Config.PRETEXT_TASKS['gaussian_blur']['pretext_model_path'])
+
+    image = data_handler.load_image('15-Scene/00/1.jpg')
+    transformed_image, predicted_label, true_label = gaussian_task.classify_image(image)
+    print(f"Predicted label: {predicted_label}, True label: {true_label}")
+    data_handler.save_transformed_image(transformed_image, 'gaussian_blur_transformed.jpg')
+
     gaussian_task.prepare_for_scene_classification()
     gaussian_task.fine_tune_classifier(train_loader, valid_loader, Config.EPOCHS)
     gaussian_finetuned_accuracy = gaussian_task.evaluate_model(valid_loader)
@@ -32,9 +40,16 @@ def main():
 
     # Black and White Perturbation Pretext Task
     print("Training on Black and White Perturbation pretext task...")
-    bw_perturbation_task = PretextTask('EfficientNet-B0', 'black_white_perturbation', Config.PRETEXT_TASKS['black_white_perturbation']['classes'])
-    bw_perturbation_task.train_pretext_task(train_loader, bw_perturbation_task.optimizer, bw_perturbation_task.criterion, Config.EPOCHS)
+    bw_perturbation_task = PretextTask('black_white_perturbation')
+    # bw_perturbation_task.train_pretext_task(train_loader, bw_perturbation_task.optimizer, bw_perturbation_task.criterion, Config.EPOCHS)
+    bw_perturbation_task.train_model(train_loader, valid_loader, Config.EPOCHS)
     bw_perturbation_task.save_model(Config.PRETEXT_TASKS['black_white_perturbation']['pretext_model_path'])
+
+    image = data_handler.load_image('15-Scene/00/1.jpg')
+    transformed_image, predicted_label, true_label = bw_perturbation_task.classify_image(image)
+    print(f"Predicted label: {predicted_label}, True label: {true_label}")
+    data_handler.save_transformed_image(transformed_image, 'pertubation_transformed.jpg')
+
     bw_perturbation_task.prepare_for_scene_classification()
     bw_perturbation_task.fine_tune_classifier(train_loader, valid_loader, Config.EPOCHS)
     bw_finetuned_accuracy = bw_perturbation_task.evaluate_model(valid_loader)

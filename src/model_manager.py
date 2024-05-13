@@ -47,6 +47,9 @@ class ModelManager:
 
         return model
 
+    def modify_images(self, images, labels):
+        return images, labels
+
     def train_model(self, train_loader, valid_loader, epochs=10):
         """
         Train the model using the specified training and validation loaders for a number of epochs,
@@ -59,7 +62,8 @@ class ModelManager:
         self.model.train()
         for epoch in range(epochs):
             total_train_loss = 0.0
-            for images, labels in train_loader:
+            for images, labels in tqdm(train_loader):
+                images, labels = self.modify_images(images, labels)
                 images, labels = images.to(self.device), labels.to(self.device)
                 self.optimizer.zero_grad()
                 outputs = self.model(images)
@@ -118,6 +122,7 @@ class ModelManager:
         total_loss = 0
         with torch.no_grad():
             for images, labels in tqdm(test_loader):
+                images, labels = self.modify_images(images, labels)
                 images, labels = images.to(self.device), labels.to(self.device)
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
