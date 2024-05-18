@@ -3,18 +3,18 @@
         "model_type": "Self-Supervised with Gaussian Blur Fine-tuned",
         "accuracy": [
             0.0,
-            8.587676048278809
+            8.845863342285156
         ],
         "model_details": "EfficientNet-B0 pre-trained, self-supervised on Gaussian Blur, fine-tuned on scene classification.",
-        "timestamp": "2024-05-13T10:44:40.723117"
+        "timestamp": "2024-05-19T00:34:07.449475"
     },
     {
         "model_type": "Self-Supervised with Black and White Perturbation Fine-tuned",
         "accuracy": [
             0.0,
-            9.135920524597168
+            9.109445571899414
         ],
         "model_details": "EfficientNet-B0 pre-trained, self-supervised on Black and White Perturbation, fine-tuned on scene classification.",
-        "timestamp": "2024-05-13T10:44:40.725263"
+        "timestamp": "2024-05-19T00:34:07.452605"
     }
 ]

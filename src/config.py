@@ -23,14 +23,18 @@ class Config:
         'gaussian_blur': {
             'model_name': 'EfficientNet-B0',  # Model name to use for the pretext task
             'classes': [5, 9, 13, 17, 21],  # Example for Gaussian blur sizes
-            'pretext_model_path': 'models/EfficientNet-B0_pretext_gaussian_blur.pth',
-            'scene_classifier_model_path': 'models/EfficientNet-B0_scene_classifier_gaussian_blur.pth'
+            'model_path': 'models/gaussian_blur.pth',
+            'checkpoint_path': 'models/gaussian_blur_checkpoint.pth',
+            'scene_model_path': 'models/scene_gaussian_blur.pth',
+            'scene_checkpoint_path': 'models/scene_gaussian_blur_checkpoint.pth'
         },
         'black_white_perturbation': {
             'model_name': 'EfficientNet-B0',  # Model name to use for the pretext task
             'classes': [0, 1],  # Black or white perturbation
-            'pretext_model_path': 'models/EfficientNet-B0_pretext_bw_perturbation.pth',
-            'scene_classifier_model_path': 'models/EfficientNet-B0_scene_classifier_bw_perturbation.pth'
+            'model_path': 'models/perturbation.pth',
+            'checkpoint_path': 'models/perturbation_checkpoint.pth',
+            'scene_model_path': 'models/scene_perturbation.pth',
+            'scene_checkpoint_path': 'models/scene_perturbation_checkpoint.pth'
         }
     }
 

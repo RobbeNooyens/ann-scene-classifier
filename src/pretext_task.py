@@ -13,11 +13,14 @@ from src.transformations import ImageTransformer
 
 
 class PretextTask(ModelManager):
-    def __init__(self, pretext_task):
+    def __init__(self, pretext_task, checkpoint=None):
         config = Config.PRETEXT_TASKS[pretext_task]
-        super().__init__(config['model_name'], True)
+        self.model_path = config['model_path']
+        self.checkpoint_path = config['checkpoint_path']
+        super().__init__(config['model_name'], checkpoint=checkpoint)
         self.pretext_task = pretext_task
         self.classes = config['classes']
+        self.config = config
         self.original_classifier = None  # To store the original classifier
         self.image_transformer = ImageTransformer()
         self.modify_classifier_for_pretext()
@@ -26,6 +29,10 @@ class PretextTask(ModelManager):
         """
         Modify the classifier for the specific pretext task and save the original classifier.
         """
+        # Load correct paths
+        self.model_path = self.config['model_path']
+        self.checkpoint_path = self.config['checkpoint_path']
+
         # Save the original classifier
         if hasattr(self.model, 'classifier') and isinstance(self.model.classifier, nn.Sequential):
             self.original_classifier = self.model.classifier[-1]
@@ -33,57 +40,39 @@ class PretextTask(ModelManager):
         num_ftrs = self.model.classifier[-1].in_features
         self.model.classifier[-1] = nn.Linear(num_ftrs, len(self.classes))
 
-    def restore_original_classifier(self):
-        """
-        Restore the original classifier that was saved before the pretext task modification.
-        """
-        if self.original_classifier is not None:
-            self.model.classifier[-1] = self.original_classifier
 
     def prepare_for_scene_classification(self):
         """
         Prepare the model for scene classification by restoring the original classifier
         and freezing the feature extraction layers.
         """
+        # Load correct paths
+        self.model_path = self.config['scene_model_path']
+        self.checkpoint_path = self.config['scene_checkpoint_path']
+
         # Freeze all feature extraction layers
         for param in self.model.features.parameters():
             param.requires_grad = False
 
         # Restore the original classifier
-        self.restore_original_classifier()
+        if self.original_classifier is not None:
+            self.model.classifier[-1] = self.original_classifier
 
     def modify_images(self, images, labels):
-        true_label = random.randint(0, len(self.classes) - 1)
-        labels = torch.tensor([true_label] * images.size(0))
+        data = []
         if self.pretext_task == 'gaussian_blur':
-            images = torch.stack(
-                [self.image_transformer.gaussian_blur(img, kernel_size=self.classes[true_label]) for img in images])
+            for i in range(len(self.classes)):
+                data.append((
+                    torch.stack([self.image_transformer.gaussian_blur(img, kernel_size=self.classes[i]) for img in images]),
+                    torch.tensor([i] * images.size(0))
+                ))
         elif self.pretext_task == 'black_white_perturbation':
-            images = torch.stack(
-                [self.image_transformer.perturbation(img, color=self.classes[true_label]) for img in images])
-        return images, labels
-
-    def fine_tune_classifier(self, train_loader, valid_loader, epochs):
-        """
-        Fine-tunes the classifier part of the model on the scene classification task.
-        """
-        self.model.train()
-        optimizer = torch.optim.Adam(self.model.classifier.parameters(), lr=Config.LEARNING_RATE)
-        criterion = nn.CrossEntropyLoss()
-
-        for epoch in range(epochs):
-            total_loss = 0
-            for images, labels in train_loader:
-                images, labels = images.to(self.device), labels.to(self.device)
-                optimizer.zero_grad()
-                outputs = self.model(images)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
-                total_loss += loss.item()
-
-            print(f'Epoch {epoch + 1}/{epochs}, Loss: {total_loss / len(train_loader)}')
-            self.evaluate_model(valid_loader)
+            for i in range(len(self.classes)):
+                data.append((
+                    torch.stack([self.image_transformer.perturbation(img, color=self.classes[i]) for img in images]),
+                    torch.tensor([i] * images.size(0))
+                ))
+        return data
 
     def classify_image(self, image_tensor):
         """
@@ -110,4 +99,11 @@ class PretextTask(ModelManager):
         transformed_image = transformed_image.squeeze(0)
 
         return transformed_image, predicted.item(), true_label
+
+    def get_model_path(self):
+        return self.model_path
+
+    def get_checkpoint_path(self):
+        return self.checkpoint_path
+
 
