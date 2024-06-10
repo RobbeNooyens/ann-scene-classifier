@@ -1,0 +1,3 @@
+timestamp,model,data_set,epoch,loss,accuracy
+2024-06-10 01:02:43,finetuned,train,1,2.7637312412261963,
+2024-06-10 01:02:43,finetuned,valid,1,2.7084211111068726,8.88888888888889

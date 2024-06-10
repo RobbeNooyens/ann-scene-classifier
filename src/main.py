@@ -1,50 +1,41 @@
-import torch
-
-from config import Config
-from data_handler import DataHandler
-from model_manager import ModelManager
-from pretext_task import PretextTask
-from scene_classifier import SceneClassifier
+from config import FINETUNE_CONFIG, GAUSSIAN_BLUR_CONFIG, PERTURBATION_CONFIG, GAUSSIAN_BLUR_SCENES_CONFIG, \
+    PERTURBATION_SCENES_CONFIG
+from data import DataHandler
+from models import ModelManager, PretextTask
 
 
 def main():
-    # Data preparation
-    data_handler = DataHandler()
-    train_loader, valid_loader = data_handler.load_data()
+    # Data handlers
+    data_handler = DataHandler(FINETUNE_CONFIG)
+    gaussian_data_handler = DataHandler(GAUSSIAN_BLUR_CONFIG)
+    perturbation_data_handler = DataHandler(PERTURBATION_CONFIG)
 
-    # # Supervised Learning
-    # print("Training supervised model...")
-    # supervised_model = ModelManager('EfficientNet-B0', checkpoint=Config.MODEL_SAVE_PATH)
-    # supervised_model.train_model(train_loader, valid_loader, epochs=Config.EPOCHS)
-    # supervised_accuracy, _ = supervised_model.evaluate_model(valid_loader)
-    #
+    # Load data
+    train_loader, valid_loader, test_loader = data_handler.load()
+    gaussian_train_loader, gaussian_valid_loader, gaussian_test_loader = gaussian_data_handler.load()
+    perturbation_train_loader, perturbation_valid_loader, perturbation_test_loader = perturbation_data_handler.load()
+
+    # Supervised Learning
+    print("Training supervised model...")
+    supervised_model = ModelManager(FINETUNE_CONFIG)
+    supervised_model.train_model(train_loader, valid_loader)
+    supervised_model.evaluate_test_set(test_loader)
+
     # Gaussian Blur Pretext Task
     print("Training on Gaussian Blur pretext task...")
-    gaussian_task = PretextTask('gaussian_blur')
-    gaussian_task.train_model(train_loader, valid_loader, Config.EPOCHS)
-    #
-    # # image = data_handler.load_image('15-Scene/00/1.jpg')
-    # # transformed_image, predicted_label, true_label = gaussian_task.classify_image(image)
-    # # print(f"Predicted label: {predicted_label}, True label: {true_label}")
-    # # data_handler.save_transformed_image(transformed_image, 'gaussian_blur_transformed.jpg')
-    #
-    # gaussian_task.prepare_for_scene_classification()
-    # gaussian_task.train_model(train_loader, valid_loader, Config.EPOCHS)
-    # gaussian_finetuned_accuracy = gaussian_task.evaluate_model(valid_loader)
+    gaussian_task = PretextTask(GAUSSIAN_BLUR_CONFIG, GAUSSIAN_BLUR_SCENES_CONFIG)
+    gaussian_task.train_pretext_model(gaussian_train_loader, gaussian_valid_loader)
+    gaussian_task.evaluate_test_set(gaussian_test_loader)
+    gaussian_task.train_scene_model(train_loader, valid_loader)
+    gaussian_task.evaluate_test_set(test_loader)
 
     # Black and White Perturbation Pretext Task
     print("Training on Black and White Perturbation pretext task...")
-    bw_perturbation_task = PretextTask('black_white_perturbation')
-    bw_perturbation_task.train_model(train_loader, valid_loader, 10)
-
-    # image = data_handler.load_image('15-Scene/00/1.jpg')
-    # transformed_image, predicted_label, true_label = bw_perturbation_task.classify_image(image)
-    # print(f"Predicted label: {predicted_label}, True label: {true_label}")
-    # data_handler.save_transformed_image(transformed_image, 'pertubation_transformed.jpg')
-
-    bw_perturbation_task.prepare_for_scene_classification()
-    bw_perturbation_task.train_model(train_loader, valid_loader, Config.EPOCHS)
-    bw_finetuned_accuracy = bw_perturbation_task.evaluate_model(valid_loader)
+    perturbation_task = PretextTask(PERTURBATION_CONFIG, PERTURBATION_SCENES_CONFIG)
+    perturbation_task.train_model(perturbation_train_loader, perturbation_valid_loader)
+    perturbation_task.evaluate_test_set(perturbation_test_loader)
+    perturbation_task.train_scene_model(train_loader, valid_loader)
+    perturbation_task.evaluate_test_set(test_loader)
 
 
 if __name__ == "__main__":
