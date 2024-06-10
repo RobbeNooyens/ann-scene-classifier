@@ -3,3 +3,4 @@
 models/
 checkpoints/
 plots/
+.DS_Store

@@ -19,12 +19,12 @@ class Configuration:
     CHECKPOINT_FOLDER: str = "checkpoints"
 
     # Data loading
-    BATCH_SIZE: int = 32
-    TRAIN_SPLIT: float = 0.01
-    VALID_SPLIT: float = 0.01
-    TEST_SPLIT: float = 0.98
+    BATCH_SIZE: int = 64
+    TRAIN_SPLIT: float = 0.80
+    VALID_SPLIT: float = 0.10
+    TEST_SPLIT: float = 0.10
     SHUFFLE_DATASET: bool = True
-    RANDOM_SEED: int = 42
+    RANDOM_SEED: int = 0
     DATA_TRANSFORMER: Callable = None
 
     # Model training
@@ -32,9 +32,9 @@ class Configuration:
     BASE_WEIGHTS: WeightsEnum = EfficientNet_B0_Weights.IMAGENET1K_V1
     TRAINABLE_LAYERS: list = None
     CHECKPOINT: str = None
-    EARLY_STOPPING_PATIENCE: int = 5
-    MIN_EPOCHS: int = 1
-    MAX_EPOCHS: int = 1
+    EARLY_STOPPING_PATIENCE: int = 3
+    MIN_EPOCHS: int = 5
+    MAX_EPOCHS: int = 40
     LEARNING_RATE: float = 0.001
     CLASSES: list = None
     CLASSIFIER_DROPOUT: float = 0.2
@@ -47,6 +47,7 @@ FINETUNE_CONFIG = Configuration(
     MODEL_NAME="finetuned",
     CLASSES=classifier_classes,
     TRAINABLE_LAYERS=["classifier"],
+    MIN_EPOCHS=10,
 )
 
 GAUSSIAN_BLUR_CONFIG = Configuration(

@@ -145,6 +145,8 @@ class ModelManager:
         plt.ylabel('Accuracy (%)')
         plt.legend()
 
+        if not os.path.exists("plots"):
+            os.makedirs("plots")
         plt.savefig(f"plots/training_plot_{datetime.now().strftime('%Y_%m_%d_%H%M%S')}.png")
 
     def evaluate(self, data_loader):
@@ -182,6 +184,8 @@ class ModelManager:
         """
         Save the trained model to the specified path.
         """
+        if not os.path.exists(folder):
+            os.makedirs(folder)
         path = os.path.join(folder, name)
         torch.save(self.model.state_dict(), path)
         print(f"Model saved to {path}")
