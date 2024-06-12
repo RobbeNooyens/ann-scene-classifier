@@ -1,3 +1,5 @@
+import os
+
 from PIL import Image
 from torchvision import datasets
 from torch.utils.data import DataLoader, random_split, Dataset
@@ -41,9 +43,9 @@ class DataHandler:
             valid = TransformedDataset(valid, labels, self.config.DATA_TRANSFORMER)
             test = TransformedDataset(test, labels, self.config.DATA_TRANSFORMER)
 
-        train_loader = DataLoader(train, batch_size=self.config.BATCH_SIZE, shuffle=self.config.SHUFFLE_DATASET, num_workers=4)
-        valid_loader = DataLoader(valid, batch_size=self.config.BATCH_SIZE, shuffle=False, num_workers=4)
-        test_loader = DataLoader(test, batch_size=self.config.BATCH_SIZE, shuffle=False, num_workers=4)
+        train_loader = DataLoader(train, batch_size=self.config.BATCH_SIZE, shuffle=self.config.SHUFFLE_DATASET, num_workers=os.cpu_count(), pin_memory=True)
+        valid_loader = DataLoader(valid, batch_size=self.config.BATCH_SIZE, shuffle=False, num_workers=os.cpu_count(), pin_memory=True)
+        test_loader = DataLoader(test, batch_size=self.config.BATCH_SIZE, shuffle=False, num_workers=os.cpu_count(), pin_memory=True)
 
         return train_loader, valid_loader, test_loader
 

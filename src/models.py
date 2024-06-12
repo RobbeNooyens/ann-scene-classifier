@@ -14,7 +14,7 @@ from logger import Logger
 
 class ModelManager:
     def __init__(self, config: Configuration):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
         self.config = config
         self.load()
         self.freeze_layers()
@@ -77,6 +77,8 @@ class ModelManager:
         best_loss = float('inf')
         epochs_no_improve = 0
         patience = self.config.EARLY_STOPPING_PATIENCE
+
+        self.model.to(self.device)
 
         for epoch in range(self.config.MAX_EPOCHS):
             self.model.train()
