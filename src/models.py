@@ -18,7 +18,6 @@ class ModelManager:
         self.config = config
         self.load()
         self.freeze_layers()
-        self.modify_classifier_layer()
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=config.LEARNING_RATE)
         self.logger = Logger()
@@ -40,9 +39,11 @@ class ModelManager:
             print(f"Loaded checkpoint model from {checkpoint}.")
         elif base_weights:
             self.model = base_model(weights=base_weights)
+            self.modify_classifier_layer()
             print("Loaded model with predefined weights.")
         else:
             self.model = base_model()
+            self.modify_classifier_layer()
             print("Loaded model without predefined weights.")
         self.model.to(self.device)
 
@@ -63,6 +64,22 @@ class ModelManager:
     def inspect(self):
         for name, layer in self.model.named_children():
             print(f"Layer name: {name} \t Layer type: {type(layer)}")
+
+    def train_model_pre_load(self, train_loader, valid_loader):
+        """
+        Train the model using the specified training and validation loaders for a number of epochs,
+        including validation after each epoch and plot the training and validation loss and accuracy.
+        """
+        def pre_load_data(data_loader):
+            images_list, labels_list = [], []
+            for images, labels in data_loader:
+                images_list.append(images.to(self.device))
+                labels_list.append(labels.to(self.device))
+            return images_list, labels_list
+
+        train_images, train_labels = pre_load_data(train_loader)
+        valid_images, valid_labels = pre_load_data(valid_loader)
+        self.train_model(list(zip(train_images, train_labels)), list(zip(valid_images, valid_labels)))
 
     def train_model(self, train_loader, valid_loader):
         """
@@ -120,11 +137,15 @@ class ModelManager:
                 print(f"Early stopping at epoch {epoch + 1}")
                 break
 
-            print(f'Epoch {epoch + 1}, Train Loss: {avg_train_loss:.4f}, Validation Loss: {avg_valid_loss:.4f}, Validation Accuracy: {valid_accuracy:.2f}%')
+            print(f'Epoch {epoch + 1}, Total Train Loss: {total_train_loss:.4f}, Train Loss: {avg_train_loss:.4f}, Validation Loss: {avg_valid_loss:.4f}, Validation Accuracy: {valid_accuracy:.2f}%')
 
         # Plotting
         self.plot_training_results(train_losses, valid_losses, valid_accuracies)
         self.save(self.config.MODEL_FOLDER, f"{self.config.MODEL_NAME}.pth")
+
+        # Clean up
+        self.model.to("cpu")
+        torch.mps.empty_cache()
 
     def plot_training_results(self, train_losses, valid_losses, valid_accuracies):
         """

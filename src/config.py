@@ -54,8 +54,10 @@ GAUSSIAN_BLUR_CONFIG = Configuration(
     MODEL_NAME="gaussian_blur",
     CLASSES=[5, 9, 13, 17, 21],
     DATA_TRANSFORMER=gaussian_blur,
-    CHECKPOINT="models/gaussian_blur.pth",
+    # CHECKPOINT="models/gaussian_blur.pth",
     TRAINABLE_LAYERS=["features", "classifier"],
+    CHECKPOINT="pretrained/gaussian_blur.pth",
+    MAX_EPOCHS=0,
 )
 GAUSSIAN_BLUR_SCENES_CONFIG = Configuration(
     MODEL_NAME="gaussian_blur_scenes",
