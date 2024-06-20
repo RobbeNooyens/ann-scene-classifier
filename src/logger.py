@@ -11,7 +11,7 @@ class Logger:
         return cls._instance
 
     def __init__(self):
-        self.log_file = "log.csv"
+        self.log_file = "log_gaussian_scenes.csv"
         # Create file if it doesn't exist
         if not os.path.exists(self.log_file):
             with open(self.log_file, "w") as f:

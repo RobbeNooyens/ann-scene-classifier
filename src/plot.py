@@ -1,8 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Load the log.csv file
-log_file_path = 'archive/Finetune Adam Full/log.csv'
+# Load the log_gaussian_scenes.csv file
+log_file_path = 'log.csv'
 df = pd.read_csv(log_file_path)
 
 # Extract relevant data
@@ -21,7 +21,7 @@ valid_loss = valid_df['loss'].values
 valid_accuracy = valid_df['accuracy'].values
 
 # Create a plot with two y-axes
-fig, ax1 = plt.subplots(figsize=(8, 6))
+fig, ax1 = plt.subplots(figsize=(8, 3))
 
 color = 'tab:blue'
 ax1.set_xlabel('Epochs')

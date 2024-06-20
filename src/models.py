@@ -218,35 +218,3 @@ class ModelManager:
         path = os.path.join(folder, name)
         torch.save(self.model.state_dict(), path)
         print(f"Model saved to {path}")
-
-
-class PretextTask(ModelManager):
-    def __init__(self, pretext_config: Configuration, scene_config: Configuration):
-        super().__init__(pretext_config)
-        self.pretext_config = pretext_config
-        self.scene_config = scene_config
-        self.current_model = pretext_config.MODEL_NAME
-
-    def switch_model(self, new_config):
-        """
-        Switch the model configuration and modify the classifier layer.
-        """
-        if self.current_model != new_config.MODEL_NAME:
-            self.config = new_config
-            self.model.classifier = new_config.CLASSIFIER
-            self.freeze_layers()
-            self.current_model = new_config.MODEL_NAME
-
-    def train_pretext_model(self, train_loader, valid_loader):
-        """
-        Train the pretext model.
-        """
-        self.switch_model(self.pretext_config)
-        self.train_model(train_loader, valid_loader)
-
-    def train_scene_model(self, train_loader, valid_loader):
-        """
-        Train the scene classification model.
-        """
-        self.switch_model(self.scene_config)
-        self.train_model(train_loader, valid_loader)

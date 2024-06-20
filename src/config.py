@@ -78,18 +78,22 @@ GAUSSIAN_BLUR_CONFIG = Configuration(
     DATA_TRANSFORMER=gaussian_blur,
     LEARNING_RATE=0.0001,
     TRAINABLE_LAYERS=["features", "classifier"],
-    CHECKPOINT="archive/Gaussian blur pretext/gaussian_blur_pretext.ckpt",
+    # CHECKPOINT="models/gaussian_blur.pth",
     CLASSIFIER=nn.Sequential(
         nn.Dropout(p=0.2, inplace=True),
         nn.Linear(in_features=1280, out_features=5, bias=True)
     )
 )
+
 GAUSSIAN_BLUR_SCENES_CONFIG = Configuration(
     MODEL_NAME="gaussian_blur_scenes",
     CLASSES=classifier_classes,
-    MAX_EPOCHS=15,
     TRAINABLE_LAYERS=["classifier"],
-    CHECKPOINT="archive/Gaussian blur pretext/gaussian_blur_pretext.ckpt",
+    CHECKPOINT="models/gaussian_blur.pth",
+    MAX_EPOCHS=9,
+    LEARNING_RATE=0.0001,
+    EARLY_STOPPING_PATIENCE=3,
+    EARLY_STOPPING_DELTA=0.01,
     CLASSIFIER=nn.Sequential(
         nn.Dropout(p=0.5, inplace=False),
         nn.Linear(in_features=1280, out_features=1024, bias=True),
@@ -110,81 +114,50 @@ PERTURBATION_CONFIG = Configuration(
     CLASSES=["black", "white"],
     DATA_TRANSFORMER=perturbation,
     TRAINABLE_LAYERS=["features", "classifier"],
+    LEARNING_RATE=0.00001,
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.5, inplace=True),
+        nn.Linear(in_features=1280, out_features=2, bias=True)
+    ),
+
 )
+
 PERTURBATION_SCENES_CONFIG = Configuration(
     MODEL_NAME="perturbation_scenes",
     CLASSES=classifier_classes,
+    CHECKPOINT="models/perturbation.pth",
     TRAINABLE_LAYERS=["classifier"],
+    MAX_EPOCHS=9,
+    LEARNING_RATE=0.0001,
+    EARLY_STOPPING_PATIENCE=3,
+    EARLY_STOPPING_DELTA=0.01,
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.5, inplace=False),
+        nn.Linear(in_features=1280, out_features=1024, bias=True),
+        nn.ReLU(inplace=False),
+        nn.Dropout(p=0.5, inplace=False),
+        nn.Linear(in_features=1024, out_features=512, bias=True),
+        nn.ReLU(inplace=False),
+        nn.Linear(in_features=512, out_features=len(classifier_classes), bias=True)
+    ),
+    CHECKPOINT_CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.5, inplace=True),
+        nn.Linear(in_features=1280, out_features=2, bias=True)
+    )
 )
 
 
 # ======================================================================================================================
 
-FINETUNE_CONFIG_ADAM_OPTIMIZER = Configuration(
-    MODEL_NAME="finetuned",
-    CLASSES=classifier_classes,
-    CHECKPOINT="archive/Finetune Adam/finetuned.pth",
-    # TRAINABLE_LAYERS=["features", "classifier"],
-    # MIN_EPOCHS=10,
-    # MAX_EPOCHS=30,
-    # EARLY_STOPPING_DELTA=0.001,
-    # EARLY_STOPPING_PATIENCE=5,
-    # LEARNING_RATE=0.00002,
-    # BATCH_SIZE=16,
-    # CLASSIFIER=nn.Sequential(
-    #     # nn.Dropout(p=0.5, inplace=False),
-    #     # nn.Linear(in_features=1280, out_features=640, bias=True),
-    #     # nn.ReLU(inplace=False),
-    #     nn.Dropout(p=0.3, inplace=False),
-    #     nn.Linear(in_features=1280, out_features=len(classifier_classes), bias=True)
-    # )
-)
-
-FINETUNE_CONFIG_1_HIDDEN_LAYER = Configuration(
-    MODEL_NAME="finetuned_1_hidden_layer",
-    CLASSES=classifier_classes,
-    CHECKPOINT="archive/Finetune 1 hidden layer/finetuned.pth",
-    # TRAINABLE_LAYERS=["features", "classifier"],
-    # MIN_EPOCHS=10,
-    # MAX_EPOCHS=30,
-    # EARLY_STOPPING_DELTA=0.001,
-    # EARLY_STOPPING_PATIENCE=5,
-    # LEARNING_RATE=0.00002,
-    # BATCH_SIZE=16,
-    # CLASSIFIER=nn.Sequential(
-    #     nn.Dropout(p=0.3, inplace=False),
-    #     nn.Linear(in_features=1280, out_features=320, bias=True),
-    #     nn.ReLU(inplace=False),
-    #     # nn.Dropout(p=0.3, inplace=False),
-    #     nn.Linear(in_features=320, out_features=len(classifier_classes), bias=True)
-    # )
-)
-
-FINETUNE_CONFIG_2_HIDDEN_LAYERS = Configuration(
-    MODEL_NAME="finetuned_2_hidden_layers",
-    CLASSES=classifier_classes,
-    CHECKPOINT="archive/Finetune 2 hidden layers/finetuned.pth",
-    # TRAINABLE_LAYERS=["features", "classifier"],
-    # MIN_EPOCHS=10,
-    # MAX_EPOCHS=50,
-    # EARLY_STOPPING_DELTA=0.001,
-    # EARLY_STOPPING_PATIENCE=5,
-    # LEARNING_RATE=0.0001,
-    # CLASSIFIER=nn.Sequential(
-    #     nn.Dropout(p=0.5, inplace=False),
-    #     nn.Linear(in_features=1280, out_features=1024, bias=True),
-    #     nn.ReLU(inplace=False),
-    #     nn.Dropout(p=0.5, inplace=False),
-    #     nn.Linear(in_features=1024, out_features=512, bias=True),
-    #     nn.ReLU(inplace=False),
-    #     nn.Linear(in_features=512, out_features=len(classifier_classes), bias=True)
-    # )
-)
 FINETUNE_CONFIG_ORIGINAL = Configuration(
     MODEL_NAME="finetuned_original",
     CLASSES=classifier_classes,
-    CHECKPOINT="archive/Finetune Original/finetuned.pth",
-    # TRAINABLE_LAYERS=["features", "classifier"],
+    CHECKPOINT="models/finetuned.original.pth",
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.2, inplace=True),
+        nn.Linear(in_features=1280, out_features=len(classifier_classes), bias=True)
+    ),
+    TRAINABLE_LAYERS=["features", "classifier"],
     # MIN_EPOCHS=10,
     # MAX_EPOCHS=50,
     # EARLY_STOPPING_DELTA=0.001,
@@ -194,9 +167,87 @@ FINETUNE_CONFIG_ORIGINAL = Configuration(
     # OPTIMIZER=RMSprop,
     # WEIGHT_DECAY=1e-5,
     # LEARNING_RATE=0.001,
-    # CLASSIFIER=nn.Sequential(
-    #     nn.Dropout(p=0.2, inplace=True),
-    #     nn.Linear(in_features=1280, out_features=len(classifier_classes), bias=True)
-    # ),
     # USE_SCHEDULER=True,
+)
+
+FINETUNE_CONFIG_ADAM_OPTIMIZER = Configuration(
+    MODEL_NAME="finetuned",
+    CLASSES=classifier_classes,
+    CHECKPOINT="models/finetuned.adam.pth",
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.3, inplace=False),
+        nn.Linear(in_features=1280, out_features=len(classifier_classes), bias=True)
+    ),
+    TRAINABLE_LAYERS=["features", "classifier"],
+    # MIN_EPOCHS=10,
+    # MAX_EPOCHS=30,
+    # EARLY_STOPPING_DELTA=0.001,
+    # EARLY_STOPPING_PATIENCE=5,
+    # LEARNING_RATE=0.00002,
+    # BATCH_SIZE=16,
+)
+
+FINETUNE_CONFIG_1_HIDDEN_LAYER = Configuration(
+    MODEL_NAME="finetuned_1_hidden_layer",
+    CLASSES=classifier_classes,
+    CHECKPOINT="models/finetuned.1HL.pth",
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.3, inplace=False),
+        nn.Linear(in_features=1280, out_features=320, bias=True),
+        nn.ReLU(inplace=False),
+        nn.Linear(in_features=320, out_features=len(classifier_classes), bias=True)
+    ),
+    TRAINABLE_LAYERS=["features", "classifier"],
+    # MIN_EPOCHS=10,
+    # MAX_EPOCHS=30,
+    # EARLY_STOPPING_DELTA=0.001,
+    # EARLY_STOPPING_PATIENCE=5,
+    # LEARNING_RATE=0.00002,
+    # BATCH_SIZE=16,
+)
+
+FINETUNE_CONFIG_2_HIDDEN_LAYERS = Configuration(
+    MODEL_NAME="finetuned_2_hidden_layers",
+    CLASSES=classifier_classes,
+    CHECKPOINT="finetuned.2HL.pth",
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.5, inplace=False),
+        nn.Linear(in_features=1280, out_features=1024, bias=True),
+        nn.ReLU(inplace=False),
+        nn.Dropout(p=0.5, inplace=False),
+        nn.Linear(in_features=1024, out_features=512, bias=True),
+        nn.ReLU(inplace=False),
+        nn.Linear(in_features=512, out_features=len(classifier_classes), bias=True)
+    ),
+    TRAINABLE_LAYERS=["features", "classifier"],
+    # MIN_EPOCHS=10,
+    # MAX_EPOCHS=50,
+    # EARLY_STOPPING_DELTA=0.001,
+    # EARLY_STOPPING_PATIENCE=5,
+    # LEARNING_RATE=0.0001,
+)
+
+PERTURBATION_CONFIG_OVERFITTING = Configuration(
+    MODEL_NAME="perturbation",
+    CLASSES=["black", "white"],
+    DATA_TRANSFORMER=perturbation,
+    TRAINABLE_LAYERS=["features", "classifier"],
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.2, inplace=True),
+        nn.Linear(in_features=1280, out_features=2, bias=True)
+    ),
+)
+
+GAUSSIAN_BLUR_CONFIG = Configuration(
+    MODEL_NAME="gaussian_blur",
+    CLASSES=[5, 9, 13, 17, 21],
+    MAX_EPOCHS=15,
+    DATA_TRANSFORMER=gaussian_blur,
+    LEARNING_RATE=0.0001,
+    TRAINABLE_LAYERS=["features", "classifier"],
+    # CHECKPOINT="models/gaussian_blur.pth",
+    CLASSIFIER=nn.Sequential(
+        nn.Dropout(p=0.2, inplace=True),
+        nn.Linear(in_features=1280, out_features=5, bias=True)
+    )
 )
