@@ -18,8 +18,9 @@ class ModelManager:
         self.config = config
         self.load()
         self.freeze_layers()
-        self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=config.LEARNING_RATE)
+        self.criterion = self.config.CRITERION()
+        self.optimizer = self.config.OPTIMIZER(self.model.parameters(), lr=config.LEARNING_RATE, weight_decay=config.WEIGHT_DECAY)
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=200) if config.USE_SCHEDULER else None
         self.logger = Logger()
 
     def load(self):
@@ -34,16 +35,19 @@ class ModelManager:
             raise ValueError("Model not specified.")
         elif checkpoint and os.path.exists(checkpoint):
             self.model = base_model()
-            self.modify_classifier_layer()
+            self.model.classifier = self.config.CHECKPOINT_CLASSIFIER if self.config.CHECKPOINT_CLASSIFIER else self.config.CLASSIFIER
             self.model.load_state_dict(torch.load(checkpoint))
+            if self.config.CHECKPOINT_CLASSIFIER:
+                # Replace classifier if checkpoint classifier differs from classifier
+                self.model.classifier = self.config.CLASSIFIER
             print(f"Loaded checkpoint model from {checkpoint}.")
         elif base_weights:
             self.model = base_model(weights=base_weights)
-            self.modify_classifier_layer()
+            self.model.classifier = self.config.CLASSIFIER
             print("Loaded model with predefined weights.")
         else:
             self.model = base_model()
-            self.modify_classifier_layer()
+            self.model.classifier = self.config.CLASSIFIER
             print("Loaded model without predefined weights.")
         self.model.to(self.device)
 
@@ -64,6 +68,17 @@ class ModelManager:
     def inspect(self):
         for name, layer in self.model.named_children():
             print(f"Layer name: {name} \t Layer type: {type(layer)}")
+
+    def early_stopping(self, val_loss, best_loss, counter):
+        if best_loss is None or val_loss < best_loss - self.config.EARLY_STOPPING_DELTA:
+            best_loss = val_loss
+            counter = 0
+            return False, best_loss, counter
+        counter += 1
+        if counter >= self.config.EARLY_STOPPING_PATIENCE:
+            return True, best_loss, counter
+        else:
+            return False, best_loss, counter
 
     def train_model_pre_load(self, train_loader, valid_loader):
         """
@@ -93,7 +108,6 @@ class ModelManager:
         # Early stopping
         best_loss = float('inf')
         epochs_no_improve = 0
-        patience = self.config.EARLY_STOPPING_PATIENCE
 
         self.model.to(self.device)
 
@@ -108,6 +122,8 @@ class ModelManager:
                 loss.backward()
                 self.optimizer.step()
                 total_train_loss += loss.item()
+            if self.scheduler:
+                self.scheduler.step()
 
             # Calculate average losses
             avg_train_loss = total_train_loss / len(train_loader)
@@ -125,19 +141,13 @@ class ModelManager:
             # Log values
             self.logger.log(self.config.MODEL_NAME, "train", epoch=epoch + 1, loss=avg_train_loss)
             self.logger.log(self.config.MODEL_NAME, "valid", epoch=epoch + 1, loss=avg_valid_loss, accuracy=valid_accuracy)
+            print(f'Epoch {epoch + 1}, Total Train Loss: {total_train_loss:.4f}, Train Loss: {avg_train_loss:.4f}, Validation Loss: {avg_valid_loss:.4f}, Validation Accuracy: {valid_accuracy:.2f}%')
 
             # Early stopping
-            if avg_valid_loss < best_loss:
-                best_loss = avg_valid_loss
-                epochs_no_improve = 0
-            else:
-                epochs_no_improve += 1
-
-            if epochs_no_improve >= patience:
+            stop, best_loss, counter = self.early_stopping(avg_valid_loss, best_loss, epochs_no_improve)
+            if stop:
                 print(f"Early stopping at epoch {epoch + 1}")
                 break
-
-            print(f'Epoch {epoch + 1}, Total Train Loss: {total_train_loss:.4f}, Train Loss: {avg_train_loss:.4f}, Validation Loss: {avg_valid_loss:.4f}, Validation Accuracy: {valid_accuracy:.2f}%')
 
         # Plotting
         self.plot_training_results(train_losses, valid_losses, valid_accuracies)
@@ -194,14 +204,10 @@ class ModelManager:
         return accuracy, loss
 
     def evaluate_test_set(self, data_loader):
+        self.model.to(self.device)
         accuracy, loss = self.evaluate(data_loader)
         self.logger.log(self.config.MODEL_NAME, "test", loss=loss, accuracy=accuracy)
-
-    def modify_classifier_layer(self):
-        self.model.classifier = nn.Sequential(
-            nn.Dropout(p=self.config.CLASSIFIER_DROPOUT, inplace=True),
-            nn.Linear(in_features=1280, out_features=len(self.config.CLASSES), bias=True)
-        )
+        self.model.to("cpu")
 
     def save(self, folder, name):
         """
@@ -227,7 +233,7 @@ class PretextTask(ModelManager):
         """
         if self.current_model != new_config.MODEL_NAME:
             self.config = new_config
-            self.modify_classifier_layer()
+            self.model.classifier = new_config.CLASSIFIER
             self.freeze_layers()
             self.current_model = new_config.MODEL_NAME
 

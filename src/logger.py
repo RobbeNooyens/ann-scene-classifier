@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 
@@ -12,8 +13,9 @@ class Logger:
     def __init__(self):
         self.log_file = "log.csv"
         # Create file if it doesn't exist
-        with open(self.log_file, "a") as f:
-            f.write("timestamp,model,data_set,epoch,loss,accuracy\n")
+        if not os.path.exists(self.log_file):
+            with open(self.log_file, "w") as f:
+                f.write("timestamp,model,data_set,epoch,loss,accuracy\n")
 
     def log(self, model, data_set, epoch='', loss='', accuracy=''):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
